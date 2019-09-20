@@ -11,6 +11,15 @@ public class MyPipeline : RenderPipeline
     CommandBuffer commandBuffer = new CommandBuffer { name = "Render Camera" };
 
     Material errorMaterial;
+    DrawRendererFlags drawFlags;
+
+    public MyPipeline(bool dynamicBatching, bool GPUinstancing)
+    {
+        if (dynamicBatching)
+            drawFlags = DrawRendererFlags.EnableDynamicBatching;
+        if (GPUinstancing)
+            drawFlags |= DrawRendererFlags.EnableInstancing;
+    }
     public override void Render(ScriptableRenderContext renderContext, Camera[] cameras)
     {
         // 保留基类的Render调用以检查渲染物件正确性
@@ -52,6 +61,7 @@ public class MyPipeline : RenderPipeline
         commandBuffer.Clear();
 
         var drawSettings = new DrawRendererSettings(camera, new ShaderPassName("SRPDefaultUnlit"));
+        drawSettings.flags = drawFlags;
         drawSettings.sorting.flags = SortFlags.CommonOpaque;
         var filterSettings = new FilterRenderersSettings(true);
         filterSettings.renderQueueRange = RenderQueueRange.opaque;
