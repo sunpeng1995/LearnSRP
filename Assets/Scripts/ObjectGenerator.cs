@@ -6,12 +6,17 @@ public class ObjectGenerator : MonoBehaviour
 {
     public int ObjectCount = 30;
     public Material[] material;
+    public bool randomShape = false;
 
     void Start()
     {
         for (int i = 0; i < ObjectCount; i++)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject go;
+            if (randomShape)
+                go = GameObject.CreatePrimitive(Random.value > 0.5 ? PrimitiveType.Cube : PrimitiveType.Sphere);
+            else
+                go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = "Object " + i;
             go.transform.position = transform.position +
                 new Vector3(Random.Range(-5, 5), Random.Range(-2.5f, 2.5f), Random.Range(-5, 5));
