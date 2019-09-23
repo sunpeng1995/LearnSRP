@@ -6,7 +6,7 @@ This is a repository to record my learning process of Unity Scriptable Render Pi
 
 - [x] Custom Pipeline
 - [x] Custom Shaders
-- [ ] Lights
+- [x] Lights
 - [ ] Spotlight Shadows
 - [ ] Directional Shadows
 - [ ] Transparency

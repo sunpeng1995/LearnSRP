@@ -13,11 +13,12 @@ public class MyPipeline : RenderPipeline
     Material errorMaterial;
     DrawRendererFlags drawFlags;
 
-    const int maxVisibleLights = 4;
+    const int maxVisibleLights = 16;
     static int visibleLightColorsId = Shader.PropertyToID("_VisibleLightColors");
     static int visibleLightDirectionsOrPositionsId = Shader.PropertyToID("_VisibleLightDirectionsOrPositions");
     static int visibleLightAttenuationsId = Shader.PropertyToID("_VisibleLightAttenuations");
     static int visibleLightSpotDirectionsId = Shader.PropertyToID("_VisibleLightSpotDirections");
+    static int lightIndicesOffsetAndCountId = Shader.PropertyToID("unity_LightIndicesOffsetAndCount");
 
     Vector4[] visibleLightColors = new Vector4[maxVisibleLights];
     Vector4[] visibleLightDirectionsOrPositions = new Vector4[maxVisibleLights];
@@ -69,9 +70,18 @@ public class MyPipeline : RenderPipeline
             camera.backgroundColor
         );
 
-        ConfigureLights();
+        if (cull.visibleLights.Count > 0)
+            ConfigureLights();
+        else
+        {
+            commandBuffer.SetGlobalVector(lightIndicesOffsetAndCountId, Vector4.zero);
+        }
 
         commandBuffer.BeginSample("Render Camera");
+        var test = new Vector4[16];
+        for (int i = 0; i < 16; i++)
+            test[i] = new Vector4(1, 1, 0.98f, 0);
+        //Shader.SetGlobalVectorArray("_testArray", )
         commandBuffer.SetGlobalVectorArray(visibleLightColorsId, visibleLightColors);
         commandBuffer.SetGlobalVectorArray(visibleLightDirectionsOrPositionsId, visibleLightDirectionsOrPositions);
         commandBuffer.SetGlobalVectorArray(visibleLightAttenuationsId, visibleLightAttenuations);
@@ -81,6 +91,8 @@ public class MyPipeline : RenderPipeline
 
         var drawSettings = new DrawRendererSettings(camera, new ShaderPassName("SRPDefaultUnlit"));
         drawSettings.flags = drawFlags;
+        if (cull.visibleLights.Count > 0)
+            drawSettings.rendererConfiguration = RendererConfiguration.PerObjectLightIndices8;
         drawSettings.sorting.flags = SortFlags.CommonOpaque;
         var filterSettings = new FilterRenderersSettings(true);
         filterSettings.renderQueueRange = RenderQueueRange.opaque;
@@ -123,8 +135,7 @@ public class MyPipeline : RenderPipeline
 
     void ConfigureLights()
     {
-        int i = 0;
-        for (; i < cull.visibleLights.Count; i++)
+        for (int i = 0; i < cull.visibleLights.Count; i++)
         {
             if (i == maxVisibleLights)
                 break;
@@ -166,9 +177,15 @@ public class MyPipeline : RenderPipeline
             }
             visibleLightAttenuations[i] = attenuation;
         }
-        for (; i < maxVisibleLights; i++)
+
+        if (cull.visibleLights.Count > maxVisibleLights)
         {
-            visibleLightColors[i] = Color.clear;
+            int[] lightIndices = cull.GetLightIndexMap();
+            for (int i = maxVisibleLights; i < cull.visibleLights.Count; i++)
+            {
+                lightIndices[i] = -1;
+            }
+            cull.SetLightIndexMap(lightIndices);
         }
     }
 }
