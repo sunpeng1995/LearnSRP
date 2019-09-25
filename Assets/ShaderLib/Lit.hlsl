@@ -1,6 +1,7 @@
 #ifndef MYRP_LIT_INCLUDED
 #define MYRP_LIT_INCLUDED
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Shadow/ShadowSamplingTent.hlsl"
 
 CBUFFER_START(UnityPerFrame)
     float4x4 unity_MatrixVP;
@@ -44,7 +45,33 @@ CBUFFER_START(_LightBuffer)
     float4 _VisibleLightSpotDirections[MAX_VISIBLE_LIGHTS];
 CBUFFER_END
 
-float3 DiffuseLight(int index, float3 normal, float3 worldPos) {
+CBUFFER_START(_ShadowBuffer)
+    float4x4 _WorldToShadowMatrix;
+    float _ShadowStrength;
+    float4 _ShadowMapSize;
+CBUFFER_END
+
+TEXTURE2D_SHADOW(_ShadowMap);
+SAMPLER_CMP(sampler_ShadowMap);
+
+// return 1 in light, 0 in shadow
+float ShadowAttenuation(float3 worldPos) {
+    float4 shadowPos = mul(_WorldToShadowMatrix, float4(worldPos, 1.0f));
+    shadowPos.xyz /= shadowPos.w;
+    float attenuation = SAMPLE_TEXTURE2D_SHADOW(_ShadowMap, sampler_ShadowMap, shadowPos.xyz);
+#if defined(_SHADOWS_SOFT)
+    real tentWeights[9];
+    real2 tentUVs[9];
+    SampleShadow_ComputeSamples_Tent_5x5(_ShadowMapSize, shadowPos.xy, tentWeights, tentUVs);
+    attenuation = 0;
+    for (int i = 0; i < 9; i++) {
+        attenuation += tentWeights[i] * SAMPLE_TEXTURE2D_SHADOW(_ShadowMap, sampler_ShadowMap, float3(tentUVs[i].xy, shadowPos.z));
+    }
+#endif
+    return lerp(1, attenuation, _ShadowStrength);
+}
+
+float3 DiffuseLight(int index, float3 normal, float3 worldPos, float shadowAttenuation) {
     float3 lightColor = _VisibleLightColors[index].rgb;
     float4 lightDirectionOrPosition = _VisibleLightDirectionsOrPositions[index];
     float4 lightAttenuation = _VisibleLightAttenuations[index];
@@ -65,7 +92,7 @@ float3 DiffuseLight(int index, float3 normal, float3 worldPos) {
 
     float distanceSqr = max(dot(lightVector, lightVector), 0.00001);//方向向量dot结果为1，即衰减不影响方向光
     float attenuation = spotFade * rangeFade / distanceSqr;
-    diffuse *= attenuation;
+    diffuse *= shadowAttenuation * attenuation;
 
     return diffuse * lightColor;
 }
@@ -81,7 +108,7 @@ VertexOutput LitPassVertex(VertexInput input) {
     o.vertexLighting = 0;
     for (int i = 4; i < min(unity_LightIndicesOffsetAndCount.y, 8); i++) {
         int lightIdx = unity_4LightIndices1[i - 4];
-        o.vertexLighting += DiffuseLight(lightIdx, o.normal, o.worldPos);
+        o.vertexLighting += DiffuseLight(lightIdx, o.normal, o.worldPos, 1);
     }
     return o;
 }
@@ -93,7 +120,8 @@ float4 LitPassFragment(VertexOutput input) : SV_TARGET {
     float3 diffuseLight = input.vertexLighting;
     for (int i = 0; i < min(unity_LightIndicesOffsetAndCount.y, 4); i++) {
         int lightIdx = unity_4LightIndices0[i];
-        diffuseLight += DiffuseLight(lightIdx, input.normal, input.worldPos);
+        float shadowAttenuation = ShadowAttenuation(input.worldPos);
+        diffuseLight += DiffuseLight(lightIdx, input.normal, input.worldPos, shadowAttenuation);
     }
     float3 color = diffuseLight * albedo;//input.normal;// * 0.5 + 0.5;
     return float4(color, 1);
