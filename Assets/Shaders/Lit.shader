@@ -18,6 +18,7 @@
             #pragma instancing_options assumeuniformscaling
 
             #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile _ _SHADOWS_HARD
 
             #include "../ShaderLib/Lit.hlsl"
             ENDHLSL
