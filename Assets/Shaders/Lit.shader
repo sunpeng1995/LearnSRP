@@ -17,6 +17,7 @@
             // 让Unity不传递model逆矩阵
             #pragma instancing_options assumeuniformscaling
 
+            #pragma multi_compile _ _CASCADED_SHADOWS_HARD _CASCADED_SHADOWS_SOFT
             #pragma multi_compile _ _SHADOWS_SOFT
             #pragma multi_compile _ _SHADOWS_HARD
 

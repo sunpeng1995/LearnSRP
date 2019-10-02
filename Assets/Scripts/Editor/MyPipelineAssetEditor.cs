@@ -6,14 +6,14 @@ using UnityEngine;
 public class MyPipelineAssetEditor : Editor
 {
     SerializedProperty shadowCascades;
-    SerializedProperty twoCascadesSplit;
-    SerializedProperty fourCascadesSplit;
+    SerializedProperty twoCascadeSplit;
+    SerializedProperty fourCascadeSplit;
 
     private void OnEnable()
     {
         shadowCascades = serializedObject.FindProperty("shadowCascades");
-        twoCascadesSplit = serializedObject.FindProperty("twoCascadesSplit");
-        fourCascadesSplit = serializedObject.FindProperty("fourCascadesSplit");
+        twoCascadeSplit = serializedObject.FindProperty("twoCascadeSplit");
+        fourCascadeSplit = serializedObject.FindProperty("fourCascadeSplit");
     }
 
     public override void OnInspectorGUI()
@@ -24,10 +24,10 @@ public class MyPipelineAssetEditor : Editor
         {
             case 0: return;
             case 1:
-                CoreEditorUtils.DrawCascadeSplitGUI<float>(ref twoCascadesSplit);
+                CoreEditorUtils.DrawCascadeSplitGUI<float>(ref twoCascadeSplit);
                 break;
             case 2:
-                CoreEditorUtils.DrawCascadeSplitGUI<Vector3>(ref fourCascadesSplit);
+                CoreEditorUtils.DrawCascadeSplitGUI<Vector3>(ref fourCascadeSplit);
                 break;
         }
         serializedObject.ApplyModifiedProperties();
