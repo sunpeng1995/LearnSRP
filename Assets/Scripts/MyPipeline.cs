@@ -29,6 +29,7 @@ public class MyPipeline : RenderPipeline
     static int cascadedShadowMapId = Shader.PropertyToID("_CascadedShadowMap");
     static int cascadedShadowMapSizeId = Shader.PropertyToID("_CascadedShadowMapSize");
     static int cascadedShadowStrengthId = Shader.PropertyToID("_CascadedShadowStrength");
+    static int cascadeCullingSpheresId = Shader.PropertyToID("_CascadeCullingSpheres");
     //static int worldToShadowMatrixId = Shader.PropertyToID("_WorldToShadowMatrix");
     static int worldToShadowMatricesId = Shader.PropertyToID("_WorldToShadowMatrices");
     static int worldToShadowCascadeMatricesId = Shader.PropertyToID("_WorldToShadowCascadeMatrices");
@@ -44,7 +45,8 @@ public class MyPipeline : RenderPipeline
     Vector4[] visibleLightSpotDirections = new Vector4[maxVisibleLights];
     Vector4[] shadowData = new Vector4[maxVisibleLights];
     Matrix4x4[] worldToShadowMatrices = new Matrix4x4[maxVisibleLights];
-    Matrix4x4[] worldToShadowCascadeMatrices = new Matrix4x4[4];
+    Matrix4x4[] worldToShadowCascadeMatrices = new Matrix4x4[5];
+    Vector4[] cascadeCullingSpheres = new Vector4[4];
 
     int shadowMapSize;
     RenderTexture shadowMap, cascadedShadowMap;
@@ -59,6 +61,10 @@ public class MyPipeline : RenderPipeline
         int shadowCascades, Vector3 shadowCascadeSplit)
     {
         GraphicsSettings.lightsUseLinearIntensity = true;
+        if (SystemInfo.usesReversedZBuffer)
+        {
+            worldToShadowCascadeMatrices[4].m33 = 1;
+        }
         if (dynamicBatching)
             drawFlags = DrawRendererFlags.EnableDynamicBatching;
         if (GPUinstancing)
@@ -114,8 +120,6 @@ public class MyPipeline : RenderPipeline
             }
             else
             {
-                cameraBuffer.DisableShaderKeyword(cascadedShadowsHardKeyword);
-                cameraBuffer.DisableShaderKeyword(cascadedShadowsSoftKeyword);
                 cameraBuffer.DisableShaderKeyword(shadowsHardKeyword);
                 cameraBuffer.DisableShaderKeyword(shadowsSoftKeyword);
             }
@@ -123,6 +127,8 @@ public class MyPipeline : RenderPipeline
         else
         {
             cameraBuffer.SetGlobalVector(lightIndicesOffsetAndCountId, Vector4.zero);
+            cameraBuffer.DisableShaderKeyword(cascadedShadowsHardKeyword);
+            cameraBuffer.DisableShaderKeyword(cascadedShadowsSoftKeyword);
             cameraBuffer.DisableShaderKeyword(shadowsHardKeyword);
             cameraBuffer.DisableShaderKeyword(shadowsSoftKeyword);
         }
@@ -420,6 +426,8 @@ public class MyPipeline : RenderPipeline
             shadowBuffer.Clear();
 
             shadowSettings.splitData.cullingSphere = splitData.cullingSphere;
+            cascadeCullingSpheres[i] = splitData.cullingSphere;
+            cascadeCullingSpheres[i].w *= cascadeCullingSpheres[i].w;
             context.DrawShadows(ref shadowSettings);
 
             CalculateWorldToShadowMatrix(ref viewMatrix, ref projectionMatrix, out worldToShadowCascadeMatrices[i]);
@@ -433,6 +441,7 @@ public class MyPipeline : RenderPipeline
 
         shadowBuffer.SetGlobalTexture(cascadedShadowMapId, cascadedShadowMap);
         shadowBuffer.SetGlobalMatrixArray(worldToShadowCascadeMatricesId, worldToShadowCascadeMatrices);
+        shadowBuffer.SetGlobalVectorArray(cascadeCullingSpheresId, cascadeCullingSpheres);
 
         float invShadowMapSize = 1.0f / shadowMapSize;
         shadowBuffer.SetGlobalVector(cascadedShadowMapSizeId, new Vector4(invShadowMapSize, invShadowMapSize, shadowMapSize, shadowMapSize));

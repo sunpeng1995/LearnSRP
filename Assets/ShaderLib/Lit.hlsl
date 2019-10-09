@@ -49,12 +49,13 @@ CBUFFER_START(_ShadowBuffer)
     // float4x4 _WorldToShadowMatrix;
     // float _ShadowStrength;
     float4x4 _WorldToShadowMatrices[MAX_VISIBLE_LIGHTS];
-    float4x4 _WorldToShadowCascadeMatrices[4];
+    float4x4 _WorldToShadowCascadeMatrices[5];
+    float4 _CascadeCullingSpheres[4];
     float4 _ShadowData[MAX_VISIBLE_LIGHTS];
     float4 _ShadowMapSize;
     float4 _CascadedShadowMapSize;
     float4 _GlobalShadowData;
-    float4 _CascadedShadowStrength;
+    float _CascadedShadowStrength;
 CBUFFER_END
 
 CBUFFER_START(UnityPerCamera)
@@ -124,12 +125,26 @@ float ShadowAttenuation(int index, float3 worldPos) {
     return lerp(1, attenuation, _ShadowData[index].x);
 }
 
+float InsideCascadeCullingSphere(int index, float3 worldPos) {
+    float4 s = _CascadeCullingSpheres[index];
+    return dot(worldPos - s.xyz, worldPos - s.xyz) < s.w;
+}
+
 float CascadedShadowAttenuation(float3 worldPos) {
 #if !defined(_CASCADED_SHADOWS_HARD) && !defined(_CASCADED_SHADOWS_SOFT)
     return 1.0;
 #endif
+    if (DistanceToCameraSqr(worldPos) > _GlobalShadowData.y)
+        return 1.0;
 
-    float cascadeIndex = 2;
+    float4 cascadeFlags = float4(
+        InsideCascadeCullingSphere(0, worldPos),
+        InsideCascadeCullingSphere(1, worldPos),
+        InsideCascadeCullingSphere(2, worldPos),
+        InsideCascadeCullingSphere(3, worldPos)
+    );
+    cascadeFlags.yzw = saturate(cascadeFlags.yzw - cascadeFlags.xyz);
+    float cascadeIndex = 4 - dot(cascadeFlags, float4(4, 3, 2, 1));
     float4 shadowPos = mul(_WorldToShadowCascadeMatrices[cascadeIndex], float4(worldPos, 1.0));
     float attenuation = 1;
 #if defined(_CASCADED_SHADOWS_HARD)
