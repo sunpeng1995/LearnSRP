@@ -2,17 +2,21 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class InstancedColor : MonoBehaviour
+public class InstancedMaterialProperties : MonoBehaviour
 {
     [SerializeField]
     Color color = Color.white;
 
-    [SerializeField]
+    [SerializeField, Range(0, 1)]
     float smoothness = 0.5f;
+
+    [SerializeField, Range(0, 1)]
+    float metallic;
 
     static MaterialPropertyBlock propertyBlock;
     static int colorID = Shader.PropertyToID("_Color");
     static int smoothnessID = Shader.PropertyToID("_Smoothness");
+    static int metallicID = Shader.PropertyToID("_Metallic");
 
     void Start()
     {
@@ -21,6 +25,7 @@ public class InstancedColor : MonoBehaviour
             propertyBlock = new MaterialPropertyBlock();
         propertyBlock.SetColor(colorID, color);
         propertyBlock.SetFloat(smoothnessID, smoothness);
+        propertyBlock.SetFloat(metallicID, metallic);
         GetComponent<MeshRenderer>().SetPropertyBlock(propertyBlock);
     }
 }

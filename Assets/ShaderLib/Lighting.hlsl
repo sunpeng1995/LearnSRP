@@ -4,27 +4,30 @@
 struct LitSurface {
     float3 normal, position, viewDir;
     float3 diffuse, specular;
-    float perceptualRoughness, roughness;
+    float perceptualRoughness, roughness, fresnelStrength, reflectivity;
     bool perfectDiffuser;
 };
 
-LitSurface GetLitSurface(float3 normal, float3 position, float3 viewDir, float3 color, float3 smoothness, bool perfectDiffuser = false) {
+LitSurface GetLitSurface(float3 normal, float3 position, float3 viewDir, float3 color, float metallic, float smoothness, bool perfectDiffuser = false) {
     LitSurface s;
     s.normal = normal;
     s.position = position;
     s.viewDir = viewDir;
     s.diffuse = color;
     if (perfectDiffuser) {
+        s.reflectivity = 0.0;
         smoothness = 0.0;
         s.specular = 0.0;
     }
     else {
-        s.specular = 0.04;
-        s.diffuse *= 1.0 - s.specular;
+        s.specular = lerp(0.04, color, metallic);
+        s.reflectivity = lerp(0.04, 1.0, metallic);
+        s.diffuse *= 1.0 - s.reflectivity;
     }
     s.perfectDiffuser = perfectDiffuser;
     s.perceptualRoughness = 1.0 - smoothness;
     s.roughness = s.perceptualRoughness * s.perceptualRoughness;
+    s.fresnelStrength = saturate(smoothness + s.reflectivity);
     return s;
 }
 

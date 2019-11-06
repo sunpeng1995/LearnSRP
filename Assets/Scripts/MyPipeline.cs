@@ -156,6 +156,7 @@ public class MyPipeline : RenderPipeline
         drawSettings.flags = drawFlags;
         if (cull.visibleLights.Count > 0)
             drawSettings.rendererConfiguration = RendererConfiguration.PerObjectLightIndices8;
+        drawSettings.rendererConfiguration |= RendererConfiguration.PerObjectReflectionProbes;
         drawSettings.sorting.flags = SortFlags.CommonOpaque;
         var filterSettings = new FilterRenderersSettings(true);
         filterSettings.renderQueueRange = RenderQueueRange.opaque;

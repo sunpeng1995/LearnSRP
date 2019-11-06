@@ -6,6 +6,7 @@
         _MainTex("Albedo & Alpha", 2D) = "white" {}
         [KeywordEnum(Off, On, Shadows)]_Clipping("Alpha Clipping", Float) = 0
         _Cutoff("Alpha Cutoff", Range(0, 1)) = 0.5
+        _Metallic("Metallic", Range(0, 1)) = 0
         _Smoothness("Smoothness", Range(0, 1)) = 0.5
         [Enum(UnityEngine.Rendering.CullMode)]_Cull("Cull", Float) = 2
         [Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend("Src Blend", Float) = 1
@@ -27,7 +28,7 @@
             #pragma multi_compile_instancing
 
             // 让Unity不传递model逆矩阵
-            #pragma instancing_options assumeuniformscaling
+            // #pragma instancing_options assumeuniformscaling
 
             #pragma shader_feature _CLIPPING_ON
             #pragma shader_feature _RECEIVE_SHADOWS

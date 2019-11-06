@@ -39,7 +39,7 @@ public class ObjectGenerator : MonoBehaviour
             var renderer = go.GetComponent<MeshRenderer>();
             renderer.material = material[0];
 
-            go.AddComponent<InstancedColor>();
+            go.AddComponent<InstancedMaterialProperties>();
         }
     }
 
